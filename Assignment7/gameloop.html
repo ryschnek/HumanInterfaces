@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Half Life 3: The ball's quest</title>
+</head>
+<body>
+  <h1>Half Life 3: The ball's quest</h1>
+
+  <button type="button" style="width: 100px; height: 100px; font-size: 25px;" id="pause" onclick="pause()" disabled>Pause</button>
+  <button type="button" style="width: 100px; height: 100px; font-size: 25px;" id="play" onclick="play()">Play</button>
+  <button type="button" style="width: 100px; height: 100px; font-size: 25px;" onclick="reset()">Reset</button>
+  <canvas id="canvas" width="950" height="600" style="border:5px solid black;">
+    Display this text if browser does not support canvas.
+  </canvas>
+  
+  <h3>
+    Instructions
+  </h3>
+  <p>
+    Use your device as the game table. In that the tilt of the table will align with the direction that you tilt your device. 
+    The goal of the game is to get your ball completely into the hole. 
+    Every time your ball is completely in the hole you will score 1 point. 
+    You also have a timer to track how long it takes you to get the ball in the hole. 
+    See how fast you are able to complete the objective!
+    Press Play to Begin!
+  </p>
+  <script>
+
+    // run the code when the document has finished loading
+
+      window.addEventListener("deviceorientation", handleOrientation, true);
+
+      // get the canvas element 
+      var canvas = document.getElementById("canvas");
+
+      // get the context of the canvas, i.e. the object that allows us to draw
+      var c = canvas.getContext("2d");
+
+      // keep track of the number of times the player ball collides with enemy
+      var hits = 0;
+      
+      var myVar;
+
+      var timeElapsed = 0;
+      var myTimer;
+      var highestTime = 0;
+      var totalTime = 0;
+    
+
+      function pause(){
+        clearInterval(myVar);
+        document.getElementById("play").removeAttribute("disabled");
+        document.getElementById("pause").setAttribute("disabled", "disabled");
+      }
+
+      function play(){
+        myVar = setInterval(function() {
+          game_logic();
+          draw();
+          timeElapsed++;
+          totalTime++;
+        } , 30);
+
+        document.getElementById("play").setAttribute("disabled", "disabled");
+        document.getElementById("pause").removeAttribute("disabled");
+      }
+
+      function reset(){
+        timeElapsed = 0;
+        highestTime = 0;
+        totalTime = 0;
+        hits = 0;
+        xposball = Math.random()*canvas.width;
+            yposball = Math.random()*canvas.height;
+
+            if(xposball < 50){
+              xposball = xposball + 50;
+            }
+            else if(canvas.width - xposball < 50){
+              xposball = xposball - 50;
+            }
+
+            if(yposball < 50){
+              yposball = yposball + 50;
+            }
+            else if(canvas.height - yposball < 50){
+              yposball = yposball - 50;
+            }
+
+            player_ball = new ball(xposball,yposball,0,0,0,0,25,'green');
+
+            xpos = Math.random()*canvas.width;
+            ypos = Math.random()*canvas.height;
+
+            if(xpos < 100){
+              xpos = xpos + 100;
+            }
+            else if(canvas.width - xpos < 100){
+              xpos = xpos - 100;
+            }  
+
+            if(ypos < 100){
+              ypos = ypos + 100;
+            }
+            else if(canvas.height - ypos < 100){
+              ypos = ypos - 100;
+            }
+        
+            goal_rect = new hole(xpos,ypos,0,0,-1,-1,25,'black'); 
+            hole_rect = new hole(xpos,ypos,0,0,-1,-1,50,'black');
+            
+            play();
+      }
+
+      // use a ball class to create ball objects... reduces code duplication
+      class ball {
+
+        // create a ball object
+        constructor(x,y,vx,vy,bvx,bvy,radius,color) {
+          this.x = x;  // x position
+          this.y = y;  // y position
+          this.vx = vx; // x velocity
+          this.vy = vy; // y velocity
+          this.bvx = bvx; // x velocity after bounce = vx * bvx
+          this.bvy = bvy; // y velocity after bounce = vy * bvy
+          this.radius = radius; 
+          this.color = color;
+        }
+
+        // draw the ball to the canvas
+        draw() {
+          c.beginPath();
+          c.fillStyle = this.color;
+          c.arc(this.x, this.y, this.radius, 0, 2 * Math.PI);
+          c.fill();          
+        } 
+
+        // move the ball according to the velocity
+        move() {
+          this.x = this.x + this.vx;
+          this.y = this.y + this.vy;
+        }
+
+        // determine if the ball has hit a boundary, multiply it by the 
+        // bounce values for the desired effect
+        boundary_check() {
+          if ((this.y + this.radius) + this.vy > canvas.height || 
+            (this.y - this.radius) + this.vy < 0) {
+              this.vy = this.bvy * this.vy;
+          }
+          if ((this.x + this.radius) + this.vx > canvas.width || 
+              (this.x - this.radius) + this.vx < 0) {
+              this.vx = this.bvx * this.vx;
+          }          
+        }
+      }
+
+      class hole {
+
+// create a ball object
+constructor(x,y,vx,vy,bvx,bvy,radius,color) {
+  this.x = x;  // x position
+  this.y = y;  // y position
+  this.vx = vx; // x velocity
+  this.vy = vy; // y velocity
+  this.bvx = bvx; // x velocity after bounce = vx * bvx
+  this.bvy = bvy; // y velocity after bounce = vy * bvy
+  this.radius = radius; 
+  this.color = color;
+}
+
+// draw the ball to the canvas
+draw() {
+  c.beginPath();
+  c.fillStyle = this.color;
+  c.rect(this.x, this.y, this.radius*2, this.radius*2);
+  c.fill();          
+} 
+
+// determine if the ball has hit a boundary, multiply it by the 
+// bounce values for the desired effect
+boundary_check() {
+  if ((this.y + this.radius) + this.vy > canvas.height || 
+    (this.y - this.radius) + this.vy < 0) {
+      this.vy = this.bvy * this.vy;
+  }
+  if ((this.x + this.radius) + this.vx > canvas.width || 
+      (this.x - this.radius) + this.vx < 0) {
+      this.vx = this.bvx * this.vx;
+  }          
+}
+}
+      var xposball = Math.random()*canvas.width;
+      var yposball = Math.random()*canvas.height;
+
+      if(xposball < 50){
+        xposball = xposball + 50;
+      }
+      else if(canvas.width - xposball < 50){
+        xposball = xposball - 50;
+      }
+
+      if(yposball < 50){
+        yposball = yposball + 50;
+      }
+      else if(canvas.height - yposball < 50){
+        yposball = yposball - 50;
+      }
+
+      // create the player ball
+      var player_ball = new ball(xposball,yposball,0,0,0,0,25,'green');
+
+      var xpos = Math.random()*canvas.width;
+      var ypos = Math.random()*canvas.height;
+
+      if(xpos < 100){
+        xpos = xpos + 100;
+      }
+      else if(canvas.width - xpos < 100){
+        xpos = xpos - 100;
+      }
+
+      if(ypos < 100){
+        ypos = ypos + 100;
+      }
+      else if(canvas.height - ypos < 100){
+        ypos = ypos - 100;
+      }
+
+
+      // create the enemy balls
+      var goal_rect = new hole(xpos,ypos,0,0,-1,-1,25,'black'); 
+      var hole_rect = new hole(xpos,ypos,0,0,-1,-1,50,'black');
+        
+
+      function handleOrientation(event) {
+        player_ball.vy = event.beta;
+        player_ball.vx = event.gamma;
+     }
+
+      function game_logic()
+      {
+        player_ball.boundary_check();
+
+          var dx = (goal_rect.x) - (player_ball.x + player_ball.vx);
+          var dy = (goal_rect.y) - (player_ball.y + player_ball.vy);
+          var distance = Math.sqrt(dx * dx + dy * dy);
+
+          if (distance < goal_rect.radius + player_ball.radius) {
+            hits++;
+            
+            if(highestTime == 0){
+              highestTime = timeElapsed;
+            }
+            else if(timeElapsed < highestTime){
+              highestTime = timeElapsed;
+            }
+
+            timeElapsed = 0;
+            xposball = Math.random()*canvas.width;
+            yposball = Math.random()*canvas.height;
+
+            if(xposball < 50){
+              xposball = xposball + 50;
+            }
+            else if(canvas.width - xposball < 50){
+              xposball = xposball - 50;
+            }
+
+            if(yposball < 50){
+              yposball = yposball + 50;
+            }
+            else if(canvas.height - yposball < 50){
+              yposball = yposball - 50;
+            }
+
+            player_ball = new ball(xposball,yposball,0,0,0,0,25,'green');
+
+            xpos = Math.random()*canvas.width;
+            ypos = Math.random()*canvas.height;
+
+            if(xpos < 100){
+              xpos = xpos + 100;
+            }
+            else if(canvas.width - xpos < 100){
+              xpos = xpos - 100;
+            }  
+
+            if(ypos < 100){
+              ypos = ypos + 100;
+            }
+            else if(canvas.height - ypos < 100){
+              ypos = ypos - 100;
+            }
+        
+            goal_rect = new hole(xpos,ypos,0,0,-1,-1,25,'black'); 
+            hole_rect = new hole(xpos,ypos,0,0,-1,-1,50,'black');
+
+            return;
+        }
+
+        player_ball.move();
+
+      }
+
+      function draw()
+      {
+        c.clearRect(0,0,canvas.width,canvas.height);
+
+        var background = new Image();
+        background.src = "WoodBackground54342.png";
+
+        c.drawImage(background, 0, 0)
+        player_ball.draw();
+        goal_rect.draw();
+        hole_rect.draw();
+        
+        var avgTimeForPoint = hits == 0 ? 0 : Math.floor(Math.floor(totalTime*0.033)/hits)
+
+        c.font = "25px serif";
+        c.fillText("Hits: " + hits + 
+        " | Time Elapsed: " + Math.floor(timeElapsed*0.033) + 
+        "s | Best Time: " + Math.floor(highestTime*0.033) + "s | " + 
+        "Total Time: " + Math.floor(totalTime*0.033) + "s | " +
+        "Average time for point: " + avgTimeForPoint + "s", 5, 20); 
+      }
+  </script>
+
+</body>
+</html> 
